@@ -99,10 +99,13 @@ public void single_hit() {
 }
 
 public void double_hit() {
-	if (cur_Base[2] == true || cur_Base[1] == true) { // 3루 혹은 2루에 주자가 있다면 홈으로 들어옴
-		cur_Base[2] = false;
+	if (cur_Base[1] == true) { // 3루 혹은 2루에 주자가 있다면 홈으로 들어옴
 		cur_Base[1] = false;
 		// 점수 추가
+		score[0][Hit_Frame.inningCount]++;
+	}
+	if(cur_Base[2]==true) {
+		cur_Base[2]=false;
 		score[0][Hit_Frame.inningCount]++;
 	}
 	if (cur_Base[0] == true) { // 1루에 주자가 있다면 3루로 진루
@@ -111,6 +114,25 @@ public void double_hit() {
 	}
 	cur_Base[1] = true; // 타자는 2루로 진루
 	
+	printScore(Hit_Frame.inningCount);
+	set_CurBase();
+}
+public void triple_hit() {
+	if (cur_Base[0] == true) { // 3루 혹은 2루에 주자가 있다면 홈으로 들어옴
+		cur_Base[0] = false;
+		// 점수 추가
+		score[0][Hit_Frame.inningCount]++;
+	}
+	if (cur_Base[1] == true) { // 3루 혹은 2루에 주자가 있다면 홈으로 들어옴
+		cur_Base[1] = false;
+		// 점수 추가
+		score[0][Hit_Frame.inningCount]++;
+	}
+	if(cur_Base[2]==true) {
+		cur_Base[2]=false;
+		score[0][Hit_Frame.inningCount]++;
+	}
+	cur_Base[2]=true;
 	printScore(Hit_Frame.inningCount);
 	set_CurBase();
 }
@@ -251,7 +273,7 @@ class fieldPanel extends JPanel {
 				countDownThread.resumeThread();
 				dispose(); // dispose메서드로 현재 field 프레임은 해제하고 HitMap 프레임을 visible하도록하여 화면 전환 효과.
 				remove(btn); // btn.setvisible(false) 도 가능.
-				//scoreLabel[0].setText("0");
+				scoreLabel[0][0].setText("0");
 				// revalidate(); 혹시 제거후 반영 안될 시 프레임 재배열 + 다시 그리기
 				// repaint();
 
