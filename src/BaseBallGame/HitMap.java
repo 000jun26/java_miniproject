@@ -56,7 +56,7 @@ public class HitMap extends JFrame {
 		Timer timer = new Timer(2000, new ActionListener() {  //타이머 스레드간의 동기를 맞추기위해 2초 간의 타이머 스레드 시작.
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				field_Frame.scoreLabel[inningCount].setText("0");
+				field_Frame.scoreLabel[0][inningCount].setText("0");
 			}
 		});
 
