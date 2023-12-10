@@ -26,23 +26,45 @@ public class HitMap extends JFrame {
 	ImageIcon normalBatIcon = new ImageIcon("images/bat.png"); // 기본 베트 이미지
 	ImageIcon swingBatIcon = new ImageIcon("images/swingBat.gif");
 	Field field_Frame;
-
 	JLabel b_ball = new JLabel(new ImageIcon("images/b_ball.png"));
 	JLabel[] countLight = new JLabel[4]; // 볼 스트라이크 아웃 카운트 레이블 배열
 	JLabel hitZone = new JLabel(normalBatIcon);
 	ballThread ballthread; // 공 날라오는 스레드
-	JLabel lbl; // 경기 시작, 투수가 공 던지기까지 대기하는 와인드업 타임, 볼 -스트- 아웃 알려주는 레이블
-	String[] hitTypeArray = { "single", "double", "homerun" }; // 타격 성공시, 타격의 종류를 나타내는 문자열 배열.
-	// 더블 플레이는 구현이 어려워 당장은 배제. 추후 추가 가능.
+	CountDownThread countDownThread; // 공 던지기 제어 스레드. 3초간의 카운트다운 이후 투구.
+	JLabel lbl; //  볼 -스트- 아웃 알려주는 레이블
+	private JLabel countdownLabel=new JLabel(" "); // 투수가 공 던지기까지 대기하는 와인드업 타임. 즉 공이 투구되기까지의 카운트 다운 출력 레이블.
+	private JLabel noticeLabel=new JLabel("투수가 준비중입니다..."); // 투수 와인드업 알림 레이블
+	String[] hitTypeArray = { "single",  "single", "single", "single", "single",
+			"double","double","double",
+			"homerun",
+			"flyout","flyout","flyout","flyout",
+			"groundout","groundout","groundout","groundout" }; // 타격 성공시, 타격의 종류를 나타내는 문자열 배열.
 	
+	
+	
+	//상대팀 공격 이닝 자동화 알고리즘 메서드.
+	//
+	public void opponentScore_Algorithm() {
+		
+		
+	}
 	
 	//이닝 처리 알고리즘
 	public void inningAlgorithm() {
 		inningCount++;
-		
+		countDownThread.pauseThread();													  // 이닝 종료 후, 해당 이닝 점수판 점수를 0으로 초기화 시키기위해 추가 구현.
+		Timer timer = new Timer(2000, new ActionListener() {  //타이머 스레드간의 동기를 맞추기위해 2초 간의 타이머 스레드 시작.
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				field_Frame.scoreLabel[inningCount].setText("0");
+			}
+		});
+
+		timer.setRepeats(false);
+		timer.start();
 		//상대 팀 공격 자동화. showmessageDialog() 로 상대팀 득점 결과 나오도록
 		
-		if(inningCount==9) {  //0부터 시작하여 8까지 배열때문에 
+		if(inningCount==8) {
 			System.exit(0);
 		}
 	}
@@ -73,19 +95,48 @@ public class HitMap extends JFrame {
 	            outCount = 0; // 아웃 카운트 초기화
 	            countLight[2].setVisible(false);
 	            countLight[3].setVisible(false);
-	            inningAlgorithm();  //이닝++
-	            timeStop_hit_changeFrame(2000,"");  //이 함수에서 이닝교체 구현해놓음 else부분에
+	            field_Frame.reset_Base(); // 이닝 종료. 베이스 비어있도록 구현
+	            inningAlgorithm();
 	        }
 
 	    }
 	    hitZone.setIcon(normalBatIcon);
 	}
+	//아웃 처리 알고리즘
+	public void outAlgorithm() {
+	   
+	        outCount++; // 아웃 카운트 증가
+	        strikeCount = 0; // 스트라이크 카운트 초기화
+	        ballthread.pauseThread();
+	        b_ball.setLocation(500, 0);
+	        
+	        if (outCount <= 2) {
+	            countLight[1 + outCount].setVisible(true); // 아웃 카운트 라이트 켜기
+	            lbl.setText("OUT "+outCount);
+	        } 
+	        else if (outCount == 3) {
+	            lbl.setText("inning end!!!");
+	            outCount = 0; // 아웃 카운트 초기화
+	            countLight[2].setVisible(false);
+	            countLight[3].setVisible(false);
+	            field_Frame.reset_Base();
+	            inningAlgorithm();
+	        }
+	        
+	        for(int i = 0; i < 2; i++) {
+	            countLight[i].setVisible(false); // 스트라이크 카운트 라이트 끄기
+	        }
+	        hitZone.setIcon(normalBatIcon);
+	    }
+	
+	
 	//베트를 휘두르지 않았을 경우, 즉 루킹 스트라이크 당했을경우 스트라이크 처리를 위한 메서드
 	public void strikeTimestop_swingN(int second) {
 		Timer timer = new Timer(second, new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				strikeAlgorithm();
+				countDownThread.resumeThread();
 			}
 		});
 
@@ -104,6 +155,7 @@ public class HitMap extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				strikeAlgorithm();
 				swing=false;
+				countDownThread.resumeThread();
 			}
 		});
 		
@@ -111,7 +163,7 @@ public class HitMap extends JFrame {
 		timer.start();
 		
 	}
-	
+
 	public String random_HitType() { // 랜덤한 타격 종류 선택하여 타격 종류의 문자열을 리턴해주는 메서드
 		int randomNum = (int) (Math.random() * hitTypeArray.length);
 		return hitTypeArray[randomNum];
@@ -126,14 +178,27 @@ public class HitMap extends JFrame {
 				swing=false;
 				hit_changeFrame();
 
-				if (HitType.equals("single"))
+				if (HitType.equals("single")) {
 					field_Frame.single_hit();
-				else if (HitType.equals("double"))
+					strikeCount=0;
+				}
+				else if (HitType.equals("double")) {
 					field_Frame.double_hit();
-				else if (HitType.equals("homerun"))
+					strikeCount=0;
+				}
+				else if (HitType.equals("homerun")) {
 					field_Frame.homerun();
-				else
-					field_Frame.inningClose();
+					strikeCount=0;
+				}
+				else if (HitType.equals("flyout")) {
+					field_Frame.flyout();
+					outAlgorithm();
+				}
+				else if (HitType.equals("groundout")) {
+					field_Frame.groundout();
+					outAlgorithm();
+				}
+
 				/*
 				 * else if(random_HitType().equals("fly_out")) field_Frame.fly_out(); else
 				 * field_Frame.ground_out();
@@ -145,6 +210,7 @@ public class HitMap extends JFrame {
 				hitZone.setBackground(new Color(150, 75, 0));
 				b_ball.setLocation(500, 0);
 				hitZone.setIcon(normalBatIcon);
+				
 			}
 		});
 
@@ -184,20 +250,17 @@ public class HitMap extends JFrame {
 			lbl.setForeground(Color.RED);
 			lbl.setFont(new Font("jokerman", Font.BOLD, 30));
 			this.add(lbl);
-
-			JButton btn = new JButton("돌아가기");
-			btn.setLocation(850, 0);
-			btn.setSize(100, 50);
-			this.add(btn);
-			btn.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					// TODO Auto-generated method stub
-					normal_changeFrame();
-					// setVisible(false);
-				}
-			});
+			
+			countdownLabel.setLocation(150, 180);
+			countdownLabel.setSize(100, 50);
+			countdownLabel.setForeground(Color.MAGENTA);
+			countdownLabel.setFont(new Font("jokerman", Font.BOLD, 30));
+			this.add(countdownLabel); 
+			noticeLabel.setLocation(0, 250);
+			noticeLabel.setSize(350, 100);
+			noticeLabel.setForeground(Color.black);
+			noticeLabel.setFont(new Font("Malgun Gothic", Font.BOLD, 30));
+			this.add(noticeLabel); 
 
 			// 야구공 레이블
 			b_ball.setSize(30, 30);
@@ -230,24 +293,7 @@ public class HitMap extends JFrame {
 
 				@Override
 				public void keyPressed(KeyEvent e) {
-					if (e.getKeyChar() == 's') {
-						// ballthread.interrupt();
-						// ballthread.start(); // 테스트용으로 s 누르면 공 스레드 시작
 
-					}
-					if (e.getKeyChar() == 'd') {
-						ballthread.pauseThread(); // 테스트용으로 s 누르면 공 스레드 일시중지
-					}
-
-					if (e.getKeyChar() == 'r') {
-						ballthread.resumeThread(); // 테스트용으로 s 누르면 공 스레드 재개
-						// batThread.start();
-					}
-
-					if (e.getKeyChar() == 'b') {
-						// ballthread.interrupt();
-						b_ball.setLocation(500, 0);
-					}
 					if (!swing) { //h 키 연타를 방지하기위해 swing 변수 이용.
 								  // 야구에서도 베트는 한번만 스윙가능하니깐.
 								  //즉, 논리변수를 통해 베트는 한번만 스윙할 수 있도록 구현하였다.
@@ -269,10 +315,6 @@ public class HitMap extends JFrame {
 							
 							String hitType = random_HitType();
 							lbl.setText(hitType);
-							strikeCount = 0; // 안타 시 스트라이크 카운트 초기화
-					        countLight[0].setVisible(false);
-					        countLight[1].setVisible(false);
-
 							timeStop_hit_changeFrame(2000, hitType); // 그리고 필드 화면으로 전환되어 필드 상태 확인.
 							// 이제 추가로, 타격 결과를 설정하고, 그에 따라 카운트 보드 및 베이스 진루 설정해야지
 							
@@ -280,6 +322,7 @@ public class HitMap extends JFrame {
 						{
 							strikeTimestop_swingY(2000);
 						}
+						
 					}
 
 				}
@@ -294,6 +337,8 @@ public class HitMap extends JFrame {
 			g.drawImage(countboard, 0, 0, 400, 100, this);
 			g.drawImage(hitter, 650, 450, 100, 200, this);
 
+			
+			
 		}
 	}
 
@@ -307,7 +352,65 @@ public class HitMap extends JFrame {
 		this.setTitle("타격시작");
 		this.setLocation(500, 200);
 	}
+	
+	
+	
+	/// 공 투구 자동화 카운트다운 스레드
+	public class CountDownThread extends Thread {
+		
+		private boolean paused = true; // 스레드 일시 중지 여부를 체크하는 변수
+	    private int count=5;
+	    
+	    public void pauseThread() { // 공 멈추기 메서드
+			paused = true; // 외부에서 호출하여 스레드를 일시 중지
+		}
 
+		public void resumeThread() { // 공 던지기 메서드
+			countdownLabel.setVisible(true);
+			noticeLabel.setOpaque(false);
+			noticeLabel.setText("투수가 준비중입니다...");
+			synchronized (this) {
+				paused = false;
+				notify(); // 스레드 재개를 위해 일시 중지 상태 해제
+			}
+		}
+
+		@Override
+		public void run() {
+		    while (true) {
+		        synchronized (this) {
+		            if(paused) {
+		                try {
+		                    wait();
+		                } catch (InterruptedException e) {
+		                    return;
+		                }
+		            }
+		        }
+		        if(count==1) {
+		        	noticeLabel.setOpaque(true);
+		        	noticeLabel.setBackground(Color.red);
+		        	noticeLabel.setForeground(Color.blue);
+		        	noticeLabel.setText("타격을 준비하세요!!!!");
+		        }
+		        if (count == 0) {
+		            ballthread.resumeThread();
+		            this.pauseThread();
+		            countdownLabel.setVisible(false);
+		            count = 5;  // 카운트 다운을 재시작할 수 있도록 count를 초기화
+		        }
+		        
+		        countdownLabel.setText(Integer.toString(count));
+		        count--;
+
+		        try {
+		            Thread.sleep(1000);
+		        } catch (InterruptedException e) {
+		            return;
+		        }
+		    }
+		}
+	}
 	/// 공 스레드
 	class ballThread extends Thread {
 		Random rand = new Random(); // 랜덤 객체 생성
@@ -330,6 +433,8 @@ public class HitMap extends JFrame {
 		@Override
 		public void run() {
 			while (true) {
+				
+				
 				synchronized (this) {
 					if (paused) { // 일시 중지 플래그가 true이면 실행을 대기
 						try {
@@ -344,7 +449,7 @@ public class HitMap extends JFrame {
 				int ballY = b_ball.getY() + 10;
 				b_ball.setLocation(b_ball.getX(), ballY);
 				 
-				if(ballY == 720 && swing==false) {
+				if(ballY == 720 && swing==false) { //헛스윙시
 					strikeTimestop_swingN(2000);
 				}
 				
