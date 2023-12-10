@@ -57,7 +57,9 @@ public class HitMap extends JFrame {
 		Timer timer = new Timer(2000, new ActionListener() {  //타이머 스레드간의 동기를 맞추기위해 2초 간의 타이머 스레드 시작.
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				field_Frame.scoreLabel[0][inningCount].setText("0");
+				//field_Frame.scoreLabel[0][inningCount].setText("0");
+				field_Frame.printScore(inningCount);
+				field_Frame.output("\n"+(inningCount+1)+"회 ");//파일 입력
 			}
 		});
 
@@ -65,7 +67,7 @@ public class HitMap extends JFrame {
 		timer.start();
 		//상대 팀 공격 자동화. showmessageDialog() 로 상대팀 득점 결과 나오도록
 		
-		if(inningCount==8) {
+		if(inningCount==9) {
 			System.exit(0);
 		}
 	}
@@ -86,6 +88,7 @@ public class HitMap extends JFrame {
 	        countLight[0].setVisible(false);
 	        countLight[1].setVisible(false);
 	        outCount++;
+	    	field_Frame.output("삼진");
 	        
 	        if (outCount <= 2) {
 	            countLight[1 + outCount].setVisible(true); // 아웃 카운트 라이트 켜기
@@ -352,7 +355,7 @@ public class HitMap extends JFrame {
 		this.field_Frame = field_Frame;
 
 		setContentPane(new HitPanel());
-
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);  //안하면 메모장에 계속 진행되고있음.. 삼진 삼진
 		this.setSize(1000, 700);
 		this.setTitle("타격시작");
 		this.setLocation(500, 200);
