@@ -37,7 +37,7 @@ private Boolean[] cur_Base = { false, false, false }; // 현재 1-2-3 루 베이
 // 당연히 초기 cur_Base 요소들의 값은 false 로, 모든 베이스에는 주자가 없는 상태이다.
 
 private int score[][] = new int[2][9]; //점수를 나타내는 배열 score[0]은 플레이어팀 점수 score[1]은 상대팀 점수
-JLabel scoreLabel[] = new JLabel[9];  //점수판에 점수를 나타내는 Label
+JLabel scoreLabel[][] = new JLabel[2][10];  //점수판에 점수를 나타내는 Label
 
 public void timeStop_changeFrame(int second) {
 	Timer timer = new Timer(second, new ActionListener() {
@@ -60,6 +60,24 @@ public void changeFrame() { // hit 프레임으로 화면 전환 메서드. 1.2 
 	dispose();
 }
 
+public void initScore() {  //점수 초기화
+	for(int j=0;j<score.length;j++) {
+		for(int i=0;i<score[0].length;i++)
+			score[j][i]=0;
+	}
+}
+public void printScore(int inning) {  //점수판에 점수 출력
+	int sum=0,sum2=0;
+	scoreLabel[0][inning].setText(Integer.toString(score[0][inning]));
+	scoreLabel[1][inning].setText(Integer.toString(score[1][inning]));
+	for(int i=0;i<score[0].length;i++) {
+		sum += score[0][i];
+		sum2 += score[1][i];
+	}
+	scoreLabel[0][9].setText(Integer.toString(sum));
+	scoreLabel[1][9].setText(Integer.toString(sum2));
+}
+
 // 이런식으로, 타격 결과에 따라서 현재 각 베이스의 상태를 바꿔준다.cur_Base 요소 값 변경.
 public void single_hit() {
 	if (cur_Base[2] == true) { // 3루에 주자가 있다면 홈으로 들어옴
@@ -77,7 +95,7 @@ public void single_hit() {
 	}
 	cur_Base[0] = true; // 타자는 1루로 진루
 	set_CurBase();
-	scoreLabel[Hit_Frame.inningCount].setText(Integer.toString(score[0][Hit_Frame.inningCount]));
+	printScore(Hit_Frame.inningCount);
 }
 
 public void double_hit() {
@@ -93,7 +111,7 @@ public void double_hit() {
 	}
 	cur_Base[1] = true; // 타자는 2루로 진루
 	
-	scoreLabel[Hit_Frame.inningCount].setText(Integer.toString(score[0][Hit_Frame.inningCount]));
+	printScore(Hit_Frame.inningCount);
 	set_CurBase();
 }
 
@@ -107,7 +125,7 @@ public void homerun() {
 	}
 	// 타자도 홈으로 들어와 점수 추가
 	score[0][Hit_Frame.inningCount]++;
-	scoreLabel[Hit_Frame.inningCount].setText(Integer.toString(score[0][Hit_Frame.inningCount]));
+	printScore(Hit_Frame.inningCount);
 	
 	set_CurBase();
 }
@@ -186,13 +204,18 @@ class fieldPanel extends JPanel {
 
 		setLayout(null);
 		baseArrays(); // 베이스 배열 구성.
-		for(int i=0;i<9;i++) {  //점수판에 점수를 나타내는 기능
-			scoreLabel[i] = new JLabel("");
-			scoreLabel[i].setSize(30,30);
-			scoreLabel[i].setLocation(187+37*(i+1),50);
-			scoreLabel[i].setFont(new Font("gothic",Font.BOLD , 20));
-			scoreLabel[i].setForeground(Color.WHITE);
-			add(scoreLabel[i]);
+		for(int i=0;i<scoreLabel[0].length;i++) {//점수판에 점수를 나타내는 기능
+			for(int j=0;j<scoreLabel.length;j++) {
+			scoreLabel[j][i] = new JLabel("");
+			scoreLabel[j][i].setSize(30,30);
+			if(i==scoreLabel[0].length-1)
+				scoreLabel[j][i].setLocation(240+37*i,50*(j+1));
+			else
+				scoreLabel[j][i].setLocation(224+37*i,50*(j+1));
+			scoreLabel[j][i].setFont(new Font("gothic",Font.BOLD , 20));
+			scoreLabel[j][i].setForeground(Color.WHITE);
+			add(scoreLabel[j][i]);
+			}
 		}
 		
 		JButton btn = new JButton("Play Ball");
@@ -228,7 +251,7 @@ class fieldPanel extends JPanel {
 				countDownThread.resumeThread();
 				dispose(); // dispose메서드로 현재 field 프레임은 해제하고 HitMap 프레임을 visible하도록하여 화면 전환 효과.
 				remove(btn); // btn.setvisible(false) 도 가능.
-				scoreLabel[0].setText("0");
+				//scoreLabel[0].setText("0");
 				// revalidate(); 혹시 제거후 반영 안될 시 프레임 재배열 + 다시 그리기
 				// repaint();
 
@@ -258,6 +281,7 @@ class fieldPanel extends JPanel {
 
 public Field() {
 	// TODO Auto-generated constructor stub
+	initScore();
 	this.setTitle("한성 스타디움");
 	setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	setSize(1000, 700);
