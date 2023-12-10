@@ -36,6 +36,7 @@ public class HitMap extends JFrame {
 	private JLabel noticeLabel=new JLabel("투수가 준비중입니다..."); // 투수 와인드업 알림 레이블
 	String[] hitTypeArray = { "single",  "single", "single", "single", "single",
 			"double","double","double",
+			"triple","triple",
 			"homerun",
 			"flyout","flyout","flyout","flyout",
 			"groundout","groundout","groundout","groundout" }; // 타격 성공시, 타격의 종류를 나타내는 문자열 배열.
@@ -184,6 +185,10 @@ public class HitMap extends JFrame {
 				}
 				else if (HitType.equals("double")) {
 					field_Frame.double_hit();
+					strikeCount=0;
+				}
+				else if (HitType.equals("triple")) {
+					field_Frame.triple_hit();
 					strikeCount=0;
 				}
 				else if (HitType.equals("homerun")) {
