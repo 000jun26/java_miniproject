@@ -14,6 +14,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
@@ -34,40 +35,75 @@ public class HitMap extends JFrame {
 	JLabel lbl; //  볼 -스트- 아웃 알려주는 레이블
 	private JLabel countdownLabel=new JLabel(" "); // 투수가 공 던지기까지 대기하는 와인드업 타임. 즉 공이 투구되기까지의 카운트 다운 출력 레이블.
 	private JLabel noticeLabel=new JLabel("투수가 준비중입니다..."); // 투수 와인드업 알림 레이블
-	String[] hitTypeArray = { "single",  "single", "single", "single", "single",
-			"double","double","double",
-			"triple","triple",
-			"homerun",
-			"flyout","flyout","flyout","flyout",
-			"groundout","groundout","groundout","groundout" }; // 타격 성공시, 타격의 종류를 나타내는 문자열 배열.
-	
-	
-	
+	String[] hitTypeArray = new String[100]; // 타격 성공시, 타격의 종류를 나타내는 문자열 배열.
+	//안타는 35%,플라이아웃은 25%, 그라운드아웃은 25% 2루타는 10%, 홈런은 5% 확률
+	Boolean inning_end=false;
+	Boolean write_end=false;
+	String HitType;
+	int last_inning=5; // 게임 회 수 설정. 몇 회까지 게임 진행할지.
 	//상대팀 공격 이닝 자동화 알고리즘 메서드.
-	//
+	//플레이어 이닝 종료 후 호출됨.0점: 30% 1점: 25% 2점: 20% 3점: 15% 4점: 7% 5점: 3%
 	public void opponentScore_Algorithm() {
 		
+		int opponent_result=0;
 		
+		double randomNum = Math.random();
+
+	    if (randomNum < 0.3) {
+	        opponent_result = 0;
+	    } 
+	    else if (randomNum < 0.55) {
+	        opponent_result = 1;
+	    } 
+	    else if (randomNum < 0.75) {
+	        opponent_result = 2;
+	    } 
+	    else if (randomNum < 0.9) {
+	        opponent_result = 3;
+	    } 
+	    else if (randomNum < 0.97) {
+	        opponent_result = 4;
+	    } 
+	    else {
+	        opponent_result = 5;
+	    }
+	    field_Frame.score[1][inningCount]=opponent_result;
+	    field_Frame.printScore(inningCount);
+	    
+	    if(inningCount+1 != last_inning)
+	    	JOptionPane.showMessageDialog(null,(inningCount+1)+"회초 공격이 종료되었습니다\n이어서 상대팀의 공격이 이어집니다",(inningCount+1)+"회초 공격 종료",JOptionPane.PLAIN_MESSAGE);
+	    else 
+	    	JOptionPane.showMessageDialog(null,(inningCount+1)+"회초 마지막 공격이 종료되었습니다",(inningCount+1)+"회초 마지막 공격 종료",JOptionPane.PLAIN_MESSAGE);
+	    
+	    
+	    JOptionPane.showMessageDialog(null,"수비 결과 → "+opponent_result+"점 실점하였습니다","상대팀 공격 턴",JOptionPane.WARNING_MESSAGE);
+	    
+	    if(inningCount+1 != last_inning)
+	    	JOptionPane.showMessageDialog(null, (inningCount+2)+"회초 경기가 시작됩니다.준비하세요","경기 시작",JOptionPane.WARNING_MESSAGE);
+	    else
+	    	JOptionPane.showMessageDialog(null,"경기 종료~!!!","경기 종료",JOptionPane.PLAIN_MESSAGE);
+	    
+	    field_Frame.changeFrame();
+	    
+	    
+	    
+	    	countDownThread.resumeThread();
+		
+	    
 	}
 	
-	//이닝 처리 알고리즘
+	//이닝 처리 알고리즘 (5회까지)
 	public void inningAlgorithm() {
+		
+		inning_end=true;
+		opponentScore_Algorithm();
 		inningCount++;
-		countDownThread.pauseThread();													  // 이닝 종료 후, 해당 이닝 점수판 점수를 0으로 초기화 시키기위해 추가 구현.
-		Timer timer = new Timer(2000, new ActionListener() {  //타이머 스레드간의 동기를 맞추기위해 2초 간의 타이머 스레드 시작.
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				//field_Frame.scoreLabel[0][inningCount].setText("0");
-				field_Frame.printScore(inningCount);
-				field_Frame.output("\n"+(inningCount+1)+"회 ");//파일 입력
-			}
-		});
-
-		timer.setRepeats(false);
-		timer.start();
+		
+		
+		
 		//상대 팀 공격 자동화. showmessageDialog() 로 상대팀 득점 결과 나오도록
 		
-		if(inningCount==9) {
+		if(inningCount==last_inning) {
 			System.exit(0);
 		}
 	}
@@ -88,8 +124,7 @@ public class HitMap extends JFrame {
 	        countLight[0].setVisible(false);
 	        countLight[1].setVisible(false);
 	        outCount++;
-	    	field_Frame.output("삼진");
-	        
+	        field_Frame.output("삼진");
 	        if (outCount <= 2) {
 	            countLight[1 + outCount].setVisible(true); // 아웃 카운트 라이트 켜기
 	            lbl.setText("OUT "+outCount);
@@ -100,7 +135,10 @@ public class HitMap extends JFrame {
 	            countLight[2].setVisible(false);
 	            countLight[3].setVisible(false);
 	            field_Frame.reset_Base(); // 이닝 종료. 베이스 비어있도록 구현
+	            normal_changeFrame();
 	            inningAlgorithm();
+	            if(inningCount != last_inning)
+	            field_Frame.output("\n "+" "+(inningCount+1)+"회 :");//삼진시, 파일 입력
 	        }
 
 	    }
@@ -108,13 +146,14 @@ public class HitMap extends JFrame {
 	}
 	//아웃 처리 알고리즘
 	public void outAlgorithm() {
-	   
+			
 	        outCount++; // 아웃 카운트 증가
 	        strikeCount = 0; // 스트라이크 카운트 초기화
 	        ballthread.pauseThread();
 	        b_ball.setLocation(500, 0);
 	        
 	        if (outCount <= 2) {
+	        	inning_end=false;
 	            countLight[1 + outCount].setVisible(true); // 아웃 카운트 라이트 켜기
 	            lbl.setText("OUT "+outCount);
 	        } 
@@ -124,6 +163,14 @@ public class HitMap extends JFrame {
 	            countLight[2].setVisible(false);
 	            countLight[3].setVisible(false);
 	            field_Frame.reset_Base();
+	            
+	            if(HitType.equals("flyout"))
+	            	field_Frame.output("뜬공");
+	            else if(HitType.equals("groundout"))
+	            	field_Frame.output("땅볼");
+	            if(inningCount+1 != last_inning)
+				field_Frame.output("\n "+" "+(inningCount+2)+"회 :");//파일 입력
+				
 	            inningAlgorithm();
 	        }
 	        
@@ -178,33 +225,34 @@ public class HitMap extends JFrame {
 		Timer timer = new Timer(second, new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				String HitType = s;
+				 HitType = s;
 				swing=false;
 				hit_changeFrame();
 
 				if (HitType.equals("single")) {
+					inning_end=false;
 					field_Frame.single_hit();
 					strikeCount=0;
 				}
 				else if (HitType.equals("double")) {
+					inning_end=false;
 					field_Frame.double_hit();
 					strikeCount=0;
 				}
-				else if (HitType.equals("triple")) {
-					field_Frame.triple_hit();
-					strikeCount=0;
-				}
 				else if (HitType.equals("homerun")) {
+					inning_end=false;
 					field_Frame.homerun();
 					strikeCount=0;
 				}
 				else if (HitType.equals("flyout")) {
-					field_Frame.flyout();
 					outAlgorithm();
+					field_Frame.flyout();
+					
 				}
 				else if (HitType.equals("groundout")) {
-					field_Frame.groundout();
 					outAlgorithm();
+					field_Frame.groundout();
+					
 				}
 
 				/*
@@ -249,9 +297,22 @@ public class HitMap extends JFrame {
 		
 		public HitPanel() {
 			// TODO Auto-generated constructor stub
-
+			setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 			setLayout(null);
-
+			//안타=> 30%, 플라이아웃=> 25%, 땅볼 아웃=> 25%, 2루타=>13%, 홈런=> 7%
+			for (int i = 0; i < 100; i++) {
+			    if (i < 30) {
+			        hitTypeArray[i] = "single";
+			    } else if (i < 55) {
+			        hitTypeArray[i] = "flyout";
+			    } else if (i < 80) {
+			        hitTypeArray[i] = "groundout";
+			    } else if (i < 93) {
+			        hitTypeArray[i] = "double";
+			    } else {
+			        hitTypeArray[i] = "homerun";
+			    }
+			}
 			lbl = new JLabel("Play Ball.. get ready");
 			lbl.setLocation(600, 150);
 			lbl.setSize(400, 200);
@@ -355,7 +416,7 @@ public class HitMap extends JFrame {
 		this.field_Frame = field_Frame;
 
 		setContentPane(new HitPanel());
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);  //안하면 메모장에 계속 진행되고있음.. 삼진 삼진
+
 		this.setSize(1000, 700);
 		this.setTitle("타격시작");
 		this.setLocation(500, 200);
@@ -366,7 +427,7 @@ public class HitMap extends JFrame {
 	/// 공 투구 자동화 카운트다운 스레드
 	public class CountDownThread extends Thread {
 		
-		private boolean paused = true; // 스레드 일시 중지 여부를 체크하는 변수
+		 boolean paused = true; // 스레드 일시 중지 여부를 체크하는 변수
 	    private int count=5;
 	    
 	    public void pauseThread() { // 공 멈추기 메서드
@@ -421,10 +482,11 @@ public class HitMap extends JFrame {
 	}
 	/// 공 스레드
 	class ballThread extends Thread {
+		
+		int ballSpeed;
 		Random rand = new Random(); // 랜덤 객체 생성
 		int hitZoneCenterX = hitZone.getX() + hitZone.getWidth() / 3; // hitZone의 중점 x 좌표
 		// 진폭과 주파수를 랜덤하게 설정
-
 		private boolean paused = true; // 스레드 일시 중지 여부를 체크하는 변수
 
 		public void pauseThread() { // 공 멈추기 메서드
@@ -457,7 +519,7 @@ public class HitMap extends JFrame {
 				int ballY = b_ball.getY() + 10;
 				b_ball.setLocation(b_ball.getX(), ballY);
 				 
-				if(ballY == 720 && swing==false) { //헛스윙시
+				if(ballY == 720 && swing==false) { //looking 스트라이크 아웃. 
 					strikeTimestop_swingN(2000);
 				}
 				
@@ -469,7 +531,7 @@ public class HitMap extends JFrame {
 				b_ball.setLocation(ballX, b_ball.getY());
 
 				try {
-					sleep(8); // 한 10~ 1 정도?
+					sleep(ballSpeed); // 한 10~ 1 정도?
 				} catch (InterruptedException e) {
 					return;
 				}
